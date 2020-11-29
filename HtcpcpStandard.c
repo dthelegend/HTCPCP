@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <string.h>
+#include <ctype.h>
 
 #include "HtcpcpStandard.h"
 
@@ -68,10 +68,10 @@ HtcpcpRequestObject * decodeRequest(FILE * message)
         for(pos = 0; *(key_value + pos); ++pos)
         {
             if(*(key_value + pos) == ':') break;
-            *(new_head.key + pos) = *(key_value + pos);
+            *(new_head.key + pos) = tolower(*(key_value + pos));
         }
         while(*(key_value + ++pos) == ' ');
-        for(pos1 = 0; *(key_value + pos + pos1); ++pos1) *(new_head.value + pos1) = *(key_value + pos + pos1);
+        for(pos1 = 0; *(key_value + pos + pos1); ++pos1) *(new_head.value + pos1) = tolower(*(key_value + pos + pos1));
         *(decoded->headers + decoded->header_count) = new_head;
         free(key_value);
     }
@@ -113,10 +113,10 @@ HtcpcpResponseObject * decodeResponse(FILE * message)
         for(pos = 0; *(key_value + pos); ++pos)
         {
             if(*(key_value + pos) == ':') break;
-            *(new_head.key + pos) = *(key_value + pos);
+            *(new_head.key + pos) = tolower(*(key_value + pos));
         }
         while(*(key_value + ++pos) == ' ');
-        for(pos1 = 0; *(key_value + pos + pos1); ++pos1) *(new_head.value + pos1) = *(key_value + pos + pos1);
+        for(pos1 = 0; *(key_value + pos + pos1); ++pos1) *(new_head.value + pos1) = tolower(*(key_value + pos + pos1));
         *(decoded->headers + decoded->header_count) = new_head;
         free(key_value);
     }
