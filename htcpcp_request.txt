@@ -1,0 +1,10 @@
+BREW /unique/resource/identifier HTCPCP/1.0
+Access-Control-Allow-Origin: *
+Connection: Keep-Alive
+Content-Encoding: text/html
+
+This is a test message!
+It's 2 lines...
+BAITED!
+
+It's actually 5 lines long...
