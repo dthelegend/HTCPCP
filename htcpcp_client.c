@@ -42,7 +42,8 @@ int main(int argc, char * argv[]) {
 
     encodeRequest(SockFD, req);
     printf("Encoding Request Complete!\n");
-    freeRequest(req);
+    free(req->headers);
+    free(req);
 
     res = decodeResponse(SockFD);
     printf("Decoding Response Complete!\n");

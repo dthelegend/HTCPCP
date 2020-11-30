@@ -40,7 +40,7 @@ HtcpcpRequestObject * decodeRequest(int message)
 {
     char * request_uri_version = calloc(2048, sizeof(char));
     HtcpcpRequestObject * decoded = calloc(sizeof(HtcpcpRequestObject), 1);
-    char * buff = malloc(8192 * sizeof(char));
+    char * buff = calloc(8192, sizeof(char));
     int buff_head = 0, internal_buff_head;
 
     decoded->method = calloc(sizeof(char), 9);
@@ -86,7 +86,7 @@ HtcpcpResponseObject * decodeResponse(int message)
 {
     char * version_status_mess = calloc(2048, sizeof(char));
     HtcpcpResponseObject * decoded = calloc(sizeof(HtcpcpRequestObject), 1);
-    char * buff = malloc(8192 * sizeof(char));
+    char * buff = calloc(8192, sizeof(char));
     int buff_head = 0, internal_buff_head;
 
     decoded->status_message = calloc(2048, sizeof(char));
