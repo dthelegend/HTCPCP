@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <string.h>
 
 #include "HtcpcpStandard.h"
 
@@ -34,111 +36,117 @@ void freeResponse(HtcpcpResponseObject * response)
     return;
 }
 
-HtcpcpRequestObject * decodeRequest(FILE * message)
+HtcpcpRequestObject * decodeRequest(int message)
 {
     char * request_uri_version = calloc(2048, sizeof(char));
-    HtcpcpRequestObject * decoded = NULL;
+    HtcpcpRequestObject * decoded = calloc(sizeof(HtcpcpRequestObject), 1);
+    char * buff = malloc(8192 * sizeof(char));
+    int buff_head = 0, internal_buff_head;
 
-    decoded = calloc(sizeof(HtcpcpRequestObject), 1);
     decoded->method = calloc(sizeof(char), 9);
     decoded->uri = calloc(sizeof(char), 2048);
-
-    fgets(request_uri_version, 2047, message);
-
-    sscanf(request_uri_version, "%4s %2047s HTCPCP/%f", decoded->method, decoded->uri, &decoded->version);
-    decoded->method[4] = '\0';
-    decoded->uri[2047] = '\0';
-    
-    free(request_uri_version);
-
     decoded->headers = calloc(64, sizeof(HtcpcpHeader));
-    for(decoded->header_count = 0; decoded->header_count < 64; ++decoded->header_count)
-    {
-        HtcpcpHeader new_head;
-        char * key_value = calloc(2048, sizeof(char));
-        int pos, pos1;
-
-        fgets(key_value, 2047, message);
-        if(key_value[0] == '\n'){
-            free(key_value);
-            break;
-        }
-        new_head.key = calloc(2048, sizeof(char));
-        new_head.value = calloc(2048, sizeof(char));
-        for(pos = 0; *(key_value + pos); ++pos)
-        {
-            if(*(key_value + pos) == ':') break;
-            *(new_head.key + pos) = tolower(*(key_value + pos));
-        }
-        while(*(key_value + ++pos) == ' ');
-        for(pos1 = 0; *(key_value + pos + pos1); ++pos1) *(new_head.value + pos1) = tolower(*(key_value + pos + pos1));
-        *(decoded->headers + decoded->header_count) = new_head;
-        free(key_value);
-    }
     decoded->request = calloc(8192, sizeof(char));
-    fread(decoded->request, 8191, sizeof(char), message);
-    decoded->request[8191] = '\0';
-    return decoded;
-}
 
-HtcpcpResponseObject * decodeResponse(FILE * message)
-{
-    char * request_uri_version = calloc(2048, sizeof(char));
-    HtcpcpResponseObject * decoded = NULL;
+    read(message, buff, 8191);
+    buff[8191] = '\0';
 
-    decoded = calloc(sizeof(HtcpcpResponseObject), 1);
-    decoded->status_message = calloc(sizeof(char), 2048);
-
-    fgets(request_uri_version, 2047, message);
-
-    sscanf(request_uri_version, "HTCPCP/%f %u %s", &decoded->version, &decoded->status, decoded->status_message);
-    decoded->status_message[2047] = '\0';
-    
+    for(buff_head = 0; buff[buff_head] != '\n'; ++buff_head) request_uri_version[buff_head] = buff[buff_head];
+    sscanf(request_uri_version, "%8s %2047s HTCPCP/%f", decoded->method, decoded->uri, &decoded->version);
     free(request_uri_version);
 
-    decoded->headers = calloc(64, sizeof(HtcpcpHeader));
     for(decoded->header_count = 0; decoded->header_count < 64; ++decoded->header_count)
     {
         HtcpcpHeader new_head;
-        char * key_value = calloc(2048, sizeof(char));
-        int pos, pos1;
-
-        fgets(key_value, 2047, message);
-        if(key_value[0] == '\n'){
-            free(key_value);
-            break;
-        }
+        if(buff[++buff_head] == '\n') break;
         new_head.key = calloc(2048, sizeof(char));
         new_head.value = calloc(2048, sizeof(char));
-        for(pos = 0; *(key_value + pos); ++pos)
+        for(internal_buff_head = 0; buff[buff_head + internal_buff_head] != ':'; ++internal_buff_head)
         {
-            if(*(key_value + pos) == ':') break;
-            *(new_head.key + pos) = tolower(*(key_value + pos));
+            new_head.key[internal_buff_head] = tolower(buff[buff_head + internal_buff_head]);
         }
-        while(*(key_value + ++pos) == ' ');
-        for(pos1 = 0; *(key_value + pos + pos1); ++pos1) *(new_head.value + pos1) = tolower(*(key_value + pos + pos1));
-        *(decoded->headers + decoded->header_count) = new_head;
-        free(key_value);
+        buff_head += internal_buff_head;
+        while(buff[++buff_head] == ' ');
+        for(internal_buff_head = 0; buff[buff_head + internal_buff_head] != '\n'; ++internal_buff_head) new_head.value[internal_buff_head] = tolower(buff[buff_head + internal_buff_head]);
+        decoded->headers[decoded->header_count] = new_head;
+        buff_head += internal_buff_head;
     }
-    decoded->response = calloc(8192, sizeof(char));
-    fread(decoded->response, 8191, sizeof(char), message);
-    decoded->response[8191] = '\0';
+
+    ++buff_head;
+
+    for(internal_buff_head = 0; buff[buff_head + internal_buff_head]; ++internal_buff_head) decoded->request[internal_buff_head] = buff[buff_head + internal_buff_head];
+    decoded->request[8191] = '\0';
+
+    free(buff);
+
     return decoded;
 }
 
-void encodeResponse(FILE * message, HtcpcpResponseObject * response)
+HtcpcpResponseObject * decodeResponse(int message)
 {
-    int i;
-    fprintf(message, "HTCPCP/%0.1f %d %s\n", response->version, response->status, response->status_message);
-    for(i = 0; i < response->header_count; ++i) fprintf(message, "%s: %s", response->headers[i].key, response->headers[i].value);
-    fprintf(message, "\n%s", response->response);
+    char * version_status_mess = calloc(2048, sizeof(char));
+    HtcpcpResponseObject * decoded = calloc(sizeof(HtcpcpRequestObject), 1);
+    char * buff = malloc(8192 * sizeof(char));
+    int buff_head = 0, internal_buff_head;
+
+    decoded->status_message = calloc(2048, sizeof(char));
+    decoded->response = calloc(8192, sizeof(char));
+    decoded->headers = calloc(64, sizeof(HtcpcpHeader));
+
+    read(message, buff, 8191);
+    buff[8191] = '\0';
+
+    for(buff_head = 0; buff[buff_head] != '\n'; ++buff_head) version_status_mess[buff_head] = buff[buff_head];
+    sscanf(version_status_mess, "HTCPCP/%f %u %s", &decoded->version, &decoded->status, decoded->status_message);
+    free(version_status_mess);
+
+    for(decoded->header_count = 0; decoded->header_count < 64; ++decoded->header_count)
+    {
+        HtcpcpHeader new_head;
+        if(buff[++buff_head] == '\n') break;
+        new_head.key = calloc(2048, sizeof(char));
+        new_head.value = calloc(2048, sizeof(char));
+        for(internal_buff_head = 0; buff[buff_head + internal_buff_head] != ':'; ++internal_buff_head)
+        {
+            new_head.key[internal_buff_head] = tolower(buff[buff_head + internal_buff_head]);
+        }
+        buff_head += internal_buff_head;
+        while(buff[++buff_head] == ' ');
+        for(internal_buff_head = 0; buff[buff_head + internal_buff_head] != '\n'; ++internal_buff_head) new_head.value[internal_buff_head] = tolower(buff[buff_head + internal_buff_head]);
+        decoded->headers[decoded->header_count] = new_head;
+        buff_head += internal_buff_head;
+    }
+
+    ++buff_head;
+
+    for(internal_buff_head = 0; buff[buff_head + internal_buff_head]; ++internal_buff_head) decoded->response[internal_buff_head] = buff[buff_head + internal_buff_head];
+    decoded->response[8191] = '\0';
+
+    free(buff);
+
+    return decoded;
 }
 
-void encodeRequest(FILE * message, HtcpcpRequestObject * request)
+void encodeResponse(int message, HtcpcpResponseObject * response)
 {
     int i;
-    fprintf(message, "%s %s HTCPCP/%0.1f\n", request->method, request->uri, request->version);
-    for(i = 0; i < request->header_count; ++i) fprintf(message, "%s: %s", request->headers[i].key, request->headers[i].value);
-    fprintf(message, "\n%s", request->request);
+    char * out = calloc(8192, sizeof(char));
+    sprintf(out + strlen(out), "HTCPCP/%0.1f %u %s\n", response->version, response->status, response->status_message);
+    for(i = 0; i < response->header_count; ++i) sprintf(out + strlen(out), "%s: %s\n", response->headers[i].key, response->headers[i].value);
+    sprintf(out + strlen(out), "\n%s", response->response);
+    write(message, out, strlen(out));
+    free(out);
+    return;
+}
+
+void encodeRequest(int message, HtcpcpRequestObject * request)
+{
+    int i;
+    char * out = calloc(8192, sizeof(char));
+    sprintf(out, "%s %s HTCPCP/%0.1f\n", request->method, request->uri, request->version);
+    for(i = 0; i < request->header_count; ++i) sprintf(out + strlen(out), "%s: %s\n", request->headers[i].key, request->headers[i].value);
+    sprintf(out + strlen(out), "\n%s", request->request);
+    write(message, out, strlen(out));
+    free(out);
     return;
 }

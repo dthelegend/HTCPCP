@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-typedef struct HtcpcpRequestObject
+typedef struct
 {
     char * key;
     char * value;
@@ -32,19 +32,19 @@ typedef struct
 } HtcpcpRequestObject;
 /* A HTCPCP Request Object */
 
-HtcpcpRequestObject * decodeRequest(FILE *);
+HtcpcpRequestObject * decodeRequest(int);
 /* Decodes and incoming HTCPCP request */
 
-void encodeRequest(FILE *, HtcpcpRequestObject *);
+void encodeRequest(int, HtcpcpRequestObject *);
 /* Encodes an outgoinging HTCPCP response */
 
 void freeRequest(HtcpcpRequestObject *);
 /* Frees a request object */
 
-HtcpcpResponseObject * decodeResponse(FILE *);
+HtcpcpResponseObject * decodeResponse(int);
 /*  */
 
-void encodeResponse(FILE *, HtcpcpResponseObject *);
+void encodeResponse(int, HtcpcpResponseObject *);
 /* Encodes an outgoinging HTCPCP response */
 
 void freeResponse(HtcpcpResponseObject *);

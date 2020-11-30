@@ -1,27 +1,31 @@
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "HtcpcpStandard.h"
 
 int main(int argc, char const *argv[])
 {
-    FILE * fp;
+    int fd;
     HtcpcpRequestObject * req;
     HtcpcpResponseObject * res;
 
     printf("------------------------------------------------------------\n");
 
-    fp = fopen("htcpcp_request.txt", "r");
-    req = decodeRequest(fp);
-    encodeRequest(stdout, req);
+    fd = open("htcpcp_request.txt", O_RDONLY);
+    req = decodeRequest(fd);
+    encodeRequest(STDOUT_FILENO, req);
     freeRequest(req);
-    fclose(fp);
+    close(fd);
 
     printf("\n------------------------------------------------------------\n");
 
-    fp = fopen("htcpcp_response.txt", "r");
-    res = decodeResponse(fp);
-    encodeResponse(stdout, res);
+    fd = open("htcpcp_response.txt", O_RDONLY);
+    res = decodeResponse(fd);
+    encodeResponse(STDOUT_FILENO, res);
     freeResponse(res);
-    fclose(fp);
+    close(fd);
 
     printf("\n------------------------------------------------------------\n");
 
