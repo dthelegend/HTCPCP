@@ -41,15 +41,14 @@ HtcpcpRequestObject * decodeRequest(int message)
     char * request_uri_version = calloc(2048, sizeof(char));
     HtcpcpRequestObject * decoded = calloc(sizeof(HtcpcpRequestObject), 1);
     char * buff = calloc(8192, sizeof(char));
-    int buff_head = 0, internal_buff_head;
+    int buff_head, internal_buff_head;
 
     decoded->method = calloc(sizeof(char), 9);
     decoded->uri = calloc(sizeof(char), 2048);
     decoded->headers = calloc(64, sizeof(HtcpcpHeader));
     decoded->request = calloc(8192, sizeof(char));
 
-    read(message, buff, 8191);
-    buff[8191] = '\0';
+    buff[read(message, buff, 8191) + 1] = '\0';
 
     for(buff_head = 0; buff[buff_head] != '\n'; ++buff_head) request_uri_version[buff_head] = buff[buff_head];
     sscanf(request_uri_version, "%8s %2047s HTCPCP/%f", decoded->method, decoded->uri, &decoded->version);
@@ -87,14 +86,13 @@ HtcpcpResponseObject * decodeResponse(int message)
     char * version_status_mess = calloc(2048, sizeof(char));
     HtcpcpResponseObject * decoded = calloc(sizeof(HtcpcpRequestObject), 1);
     char * buff = calloc(8192, sizeof(char));
-    int buff_head = 0, internal_buff_head;
+    int buff_head, internal_buff_head;
 
     decoded->status_message = calloc(2048, sizeof(char));
     decoded->response = calloc(8192, sizeof(char));
     decoded->headers = calloc(64, sizeof(HtcpcpHeader));
 
-    read(message, buff, 8191);
-    buff[8191] = '\0';
+    buff[read(message, buff, 8191) + 1] = '\0';
 
     for(buff_head = 0; buff[buff_head] != '\n'; ++buff_head) version_status_mess[buff_head] = buff[buff_head];
     sscanf(version_status_mess, "HTCPCP/%f %u %s", &decoded->version, &decoded->status, decoded->status_message);
