@@ -2,19 +2,23 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <arpa/inet.h>
+#include <netdb.h>
+#include <string.h>
 
 #include "HtcpcpStandard.h"
 
 int main(int argc, char * argv[]) {
     int SockFD;
     struct sockaddr_in sad;
+    struct hostent * host;
     HtcpcpResponseObject * res;
     HtcpcpRequestObject * req = calloc(1, sizeof(HtcpcpRequestObject));
 
+    host = gethostbyname("127.0.0.1");
+
     sad.sin_family = AF_INET;
     sad.sin_port = htons(8000);
-    sad.sin_addr.s_addr = inet_addr("127.0.0.1");
+    memcpy(&sad.sin_addr, host->h_addr_list[0], host->h_length);
 
     SockFD = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 
