@@ -7,7 +7,7 @@
 
 int main(int argc, char * argv[]) {
     int SockFD, ultraSock;
-    unsigned int alen;
+    unsigned int alen, client_address;
     struct sockaddr_in sad, client;
     HtcpcpResponseObject res;
     HtcpcpRequestObject * req;
@@ -29,10 +29,10 @@ int main(int argc, char * argv[]) {
     alen = sizeof(client);
     while((ultraSock = accept(SockFD, (struct sockaddr *) &client, &alen)))
     {
-        printf("Connected to client %d.%d.%d.%d on port %d!\n", (client.sin_addr.s_addr >> 3) & 15, (client.sin_addr.s_addr >> 2) & 15, (client.sin_addr.s_addr >> 1) & 15, (client.sin_addr.s_addr) & 15, ntohs(client.sin_port));
+        client_address = ntohl(client.sin_addr.s_addr);
+        printf("Connected to client %d.%d.%d.%d on port %hu!\nRECEIVED:\n---\n", (client_address >> 24) & 255, (client_address >> 16) & 255, (client_address >> 8) & 255, (client_address) & 255, ntohs(client.sin_port));
         req = decodeRequest(ultraSock);
         encodeRequest(STDOUT_FILENO, req);
-        printf("Decoding Request Complete!\n\n");
 
         res.headers = req->headers;
         res.header_count = req->header_count;
@@ -40,10 +40,11 @@ int main(int argc, char * argv[]) {
         res.status = 200;
         res.status_message = "OK";
         res.version = 1.0;
-
         encodeResponse(ultraSock, &res);
+        printf("\n---\nSENT:\n---\n");
         encodeResponse(STDOUT_FILENO, &res);
-        printf("\n");
+        printf("\n---\n\n");
+        close(ultraSock);
     }
 
     if(ultraSock < 0)
